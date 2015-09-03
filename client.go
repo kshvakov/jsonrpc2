@@ -13,13 +13,13 @@ type Discovery interface {
 }
 
 type Client interface {
-	Send(request Request, result interface{}) error
+	Send(method string, params Params, result interface{}) error
 }
 
 func NewClient(discovery Discovery) Client {
 
 	return &client{
-		balancer: balancer{Discovery: discovery},
+		balancer: balancer{discovery: discovery},
 		httpClient: &http.Client{
 			Timeout: time.Second * 2,
 		},
@@ -34,17 +34,17 @@ type client struct {
 func (c *client) Send(method string, params Params, result interface{}) error {
 
 	data, _ := json.Marshal(Request{
-		Version: "2.0",
-		Id:      string(rand.Int63()),
-		Method:  method,
-		Params:  params,
+		Jsonrpc:   "2.0",
+		RequestID: "",
+		Method:    method,
+		Params:    params,
 	})
 
 	var lastError error
 
 	for {
 
-		if url, err := balancer.Next(); err == nil {
+		if url, err := c.balancer.Next(); err == nil {
 
 			lastError = c.send(url, data, result)
 

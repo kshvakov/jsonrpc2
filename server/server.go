@@ -1,136 +1,77 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/kshvakov/jsonrpc2"
-	"net/http"
+	"reflect"
 )
 
-type Server struct {
+func New() *server {
+
+	return &server{
+		handlers: make(map[string]handler),
+	}
+}
+
+type server struct {
 	handlers map[string]handler
 }
 
 func (s *server) RegisterFunc(method string, fn interface{}) {
 
+	s.addHandler(method, reflect.ValueOf(fn))
 }
 
 func (s *server) RegisterObject(name string, obj interface{}) {
 
+	for i := 0; i < reflect.TypeOf(obj).NumMethod(); i++ {
+
+		method := reflect.TypeOf(obj).Method(i)
+
+		if method.PkgPath != "" {
+
+			continue
+		}
+
+		s.addHandler(fmt.Sprintf("%s.%s", name, method.Name), reflect.ValueOf(obj).Method(i))
+	}
 }
 
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *server) addHandler(method string, fn reflect.Value) {
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	if _, found := s.handlers[method]; !found {
 
-	defer func() {
+		ft := fn.Type()
 
-		r.Body.Close()
+		if ft.Kind() == reflect.Ptr {
 
-		if message := recover(); message != nil {
-
-			json.NewEncoder(w).Encode(&jsonrpc2.Response{
-				Jsonrpc: "2.0",
-				Error: jsonrpc2.Error{
-					Code:    jsonrpc2.InternalError,
-					Message: jsonrpc2.Errors[jsonrpc2.InternalError],
-					Data:    fmt.Sprint(message),
-				},
-			})
+			ft = ft.Elem()
 		}
-	}()
 
-	if r.Method != "POST" {
-
-		json.NewEncoder(w).Encode(&jsonrpc2.Response{
-			Jsonrpc: "2.0",
-			Error: jsonrpc2.Error{
-				Code:    jsonrpc2.InvalidRequest,
-				Message: jsonrpc2.Errors[jsonrpc2.InvalidRequest],
-			},
-		})
-
-		return
-	}
-
-	var request jsonrpc2.ServerRequest
-
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-
-		json.NewEncoder(w).Encode(&jsonrpc2.Response{
-			Jsonrpc:   "2.0",
-			RequestID: request.RequestID,
-			Error: jsonrpc2.Error{
-				Code:    jsonrpc2.ParseError,
-				Message: jsonrpc2.Errors[jsonrpc2.ParseError],
-			},
-		})
-
-		return
-	}
-
-	handler, found := s.handlers[request.Method]
-
-	if !found {
-
-		json.NewEncoder(w).Encode(&jsonrpc2.Response{
-			Jsonrpc:   "2.0",
-			RequestID: request.RequestID,
-			Error: jsonrpc2.Error{
-				Code:    jsonrpc2.MethodNotFound,
-				Message: jsonrpc2.Errors[jsonrpc2.MethodNotFound],
-			},
-		})
-
-		return
-	}
-
-	if params, err := handler.DecodeParams(request.Params); err == nil {
-
-		if !params.IsValid() {
-
-			json.NewEncoder(w).Encode(&jsonrpc2.Response{
-				Jsonrpc:   "2.0",
-				RequestID: request.RequestID,
-				Error: jsonrpc2.Error{
-					Code:    jsonrpc2.InvalidParams,
-					Message: jsonrpc2.Errors[jsonrpc2.InvalidParams],
-				},
-			})
+		if ft.NumIn() != 1 || ft.NumOut() != 2 || !ft.In(0).Implements(reflect.TypeOf((*jsonrpc2.Params)(nil)).Elem()) {
 
 			return
 		}
 
-		if result, err := handler.Call(params); err == nil {
+		if !ft.Out(1).Implements(reflect.TypeOf((*error)(nil)).Elem()) {
 
-			json.NewEncoder(w).Encode(&jsonrpc2.Response{
-				Jsonrpc:   "2.0",
-				RequestID: request.RequestID,
-				Result:    result,
-			})
+			return
+		}
 
-		} else {
+		params := ft.In(0)
 
-			json.NewEncoder(w).Encode(&jsonrpc2.Response{
-				Jsonrpc:   "2.0",
-				RequestID: request.RequestID,
-				Error: jsonrpc2.Error{
-					Code:    jsonrpc2.AppError,
-					Message: err.Error(),
-				},
-			})
+		if params.Kind() == reflect.Ptr {
+
+			params = params.Elem()
+		}
+
+		s.handlers[method] = handler{
+			Method: fn,
+			Params: reflect.New(params).Interface().(jsonrpc2.Params),
 		}
 
 	} else {
 
-		json.NewEncoder(w).Encode(&jsonrpc2.Response{
-			Jsonrpc:   "2.0",
-			RequestID: request.RequestID,
-			Error: jsonrpc2.Error{
-				Code:    jsonrpc2.ParseError,
-				Message: jsonrpc2.Errors[jsonrpc2.ParseError],
-				Data:    err,
-			},
-		})
+		panic(fmt.Sprintf("Method '%s' is exists", method))
 	}
 }
