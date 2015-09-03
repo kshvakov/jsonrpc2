@@ -1,7 +1,18 @@
 package jsonrpc2
 
+import (
+	"encoding/json"
+)
+
 type Params interface {
 	IsValid() bool
+}
+
+type EmptyParams struct{}
+
+func (_ EmptyParams) IsValid() bool {
+
+	return true
 }
 
 type Request struct {
@@ -9,6 +20,11 @@ type Request struct {
 	RequestID string `json:"id"`
 	Method    string `json:"method"`
 	Params    Params `json:"params"`
+}
+
+type ServerRequest struct {
+	Request
+	Params json.RawMessage `json:"params"`
 }
 
 type Response struct {

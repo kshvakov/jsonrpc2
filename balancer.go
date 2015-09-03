@@ -1,8 +1,10 @@
 package jsonrpc2
 
-type balancer struct{}
+type balancer struct {
+	discovery Discovery
+}
 
-func (b *balancer) Next() (string, bool) {
+func (b *balancer) Next() (string, error) {
 
-	return "", false
+	return "", nil
 }
