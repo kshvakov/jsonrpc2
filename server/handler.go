@@ -7,13 +7,13 @@ import (
 )
 
 type handler struct {
-	Method reflect.Value
-	Params jsonrpc2.Params
+	method reflect.Value
+	params jsonrpc2.Params
 }
 
 func (h *handler) DecodeParams(message json.RawMessage) (jsonrpc2.Params, error) {
 
-	params := reflect.New(reflect.TypeOf(h.Params).Elem()).Interface()
+	params := reflect.New(reflect.TypeOf(h.params).Elem()).Interface()
 
 	if err := json.Unmarshal(message, &params); err != nil {
 
@@ -25,7 +25,7 @@ func (h *handler) DecodeParams(message json.RawMessage) (jsonrpc2.Params, error)
 
 func (h *handler) Call(params jsonrpc2.Params) (interface{}, error) {
 
-	result := h.Method.Call([]reflect.Value{reflect.ValueOf(params)})
+	result := h.method.Call([]reflect.Value{reflect.ValueOf(params)})
 
 	if result[1].IsNil() {
 

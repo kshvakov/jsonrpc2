@@ -66,8 +66,8 @@ func (s *server) addHandler(method string, fn reflect.Value) {
 		}
 
 		s.handlers[method] = handler{
-			Method: fn,
-			Params: reflect.New(params).Interface().(jsonrpc2.Params),
+			method: fn,
+			params: reflect.New(params).Interface().(jsonrpc2.Params),
 		}
 
 	} else {
