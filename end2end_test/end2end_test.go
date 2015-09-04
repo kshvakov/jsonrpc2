@@ -50,6 +50,45 @@ func (t *testService) Sum(param *TestSumParam) (*TestSumResult, error) {
 	}, nil
 }
 
+func ExampleClient(url string) *exampleClient {
+
+	return &exampleClient{
+		rpc: jsonrpc2.NewClient(&testDiscovery{addresses: []string{url}}),
+	}
+}
+
+type exampleClient struct {
+	rpc jsonrpc2.Client
+}
+
+func (e *exampleClient) EmptyParams() (string, error) {
+
+	var result string
+
+	err := e.rpc.Send("End2End.EmptyParams", &jsonrpc2.EmptyParams{}, &result)
+
+	if err != nil {
+
+		return "", err
+	}
+
+	return result, nil
+}
+
+func (e *exampleClient) Sum(a, b int) (int, error) {
+
+	var result TestSumResult
+
+	err := e.rpc.Send("End2End.Sum", &TestSumParam{A: a, B: b}, &result)
+
+	if err != nil {
+
+		return 0, err
+	}
+
+	return result.Result, nil
+}
+
 func TestEnd2End(t *testing.T) {
 
 	app := server.New()
@@ -59,20 +98,15 @@ func TestEnd2End(t *testing.T) {
 
 	defer testServer.Close()
 
-	client := jsonrpc2.NewClient(&testDiscovery{addresses: []string{testServer.URL}})
+	client := ExampleClient(testServer.URL)
 
-	var (
-		testSumResult     TestSumResult
-		emptyParamsResult string
-	)
+	if result, err := client.EmptyParams(); assert.NoError(t, err) {
 
-	if err := client.Send("End2End.EmptyParams", &jsonrpc2.EmptyParams{}, &emptyParamsResult); assert.NoError(t, err) {
-
-		assert.Equal(t, "EmptyParams", emptyParamsResult)
+		assert.Equal(t, "EmptyParams", result)
 	}
 
-	if err := client.Send("End2End.Sum", &TestSumParam{A: 2, B: 3}, &testSumResult); assert.NoError(t, err) {
+	if result, err := client.Sum(2, 3); assert.NoError(t, err) {
 
-		assert.Equal(t, 5, testSumResult.Result)
+		assert.Equal(t, 5, result)
 	}
 }
