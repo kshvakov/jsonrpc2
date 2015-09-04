@@ -7,7 +7,7 @@ const (
 	InvalidParams        = -32602
 	InternalError        = -32603
 	ServerError          = -32000
-	AppError             = -32001
+	LogicErr             = -32001
 )
 
 var Errors = map[int16]string{
@@ -17,4 +17,13 @@ var Errors = map[int16]string{
 	InvalidParams:  "Invalid params",
 	InternalError:  "Internal error",
 	ServerError:    "Server error",
+}
+
+type LogicError struct {
+	message string
+}
+
+func (l *LogicError) Error() string {
+
+	return l.message
 }

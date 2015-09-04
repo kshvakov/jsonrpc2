@@ -17,7 +17,7 @@ func (_ EmptyParams) IsValid() bool {
 
 type Request struct {
 	Jsonrpc   string `json:"jsonrpc"`
-	RequestID string `json:"id"`
+	RequestID int    `json:"id"`
 	Method    string `json:"method"`
 	Params    Params `json:"params"`
 }
@@ -29,7 +29,7 @@ type ServerRequest struct {
 
 type Response struct {
 	Jsonrpc   string      `json:"jsonrpc"`
-	RequestID string      `json:"id"`
+	RequestID int         `json:"id"`
 	Result    interface{} `json:"result,omitempty"`
 	Error     *Error      `json:"error,omitempty"`
 }

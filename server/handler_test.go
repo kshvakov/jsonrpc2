@@ -150,6 +150,27 @@ func TestHandlerCall(t *testing.T) {
 
 			assert.Equal(t, "error message", err.Error())
 		}
+	}
 
+	fn4 := func(params *testCallParams) (interface{}, error) {
+
+		return nil, nil
+	}
+
+	h = handler{
+		method: reflect.ValueOf(fn4),
+		params: reflect.New(reflect.ValueOf(fn4).Type().In(0).Elem()).Interface().(jsonrpc2.Params),
+	}
+
+	data, _ = json.Marshal(&testCallParams{Message: "Message"})
+
+	if p, err := h.DecodeParams(data); assert.NoError(t, err) && assert.True(t, p.IsValid()) {
+
+		result, err := h.Call(p)
+
+		if assert.NoError(t, err) {
+
+			assert.Nil(t, result)
+		}
 	}
 }

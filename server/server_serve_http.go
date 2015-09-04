@@ -51,6 +51,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Error: &jsonrpc2.Error{
 				Code:    jsonrpc2.ParseError,
 				Message: jsonrpc2.Errors[jsonrpc2.ParseError],
+				Data:    err.Error(),
 			},
 		})
 
@@ -103,7 +104,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				Jsonrpc:   "2.0",
 				RequestID: request.RequestID,
 				Error: &jsonrpc2.Error{
-					Code:    jsonrpc2.AppError,
+					Code:    jsonrpc2.LogicErr,
 					Message: err.Error(),
 				},
 			})

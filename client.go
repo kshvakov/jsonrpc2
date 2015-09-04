@@ -35,7 +35,7 @@ func (c *client) Send(method string, params Params, result interface{}) error {
 
 	data, _ := json.Marshal(Request{
 		Jsonrpc:   "2.0",
-		RequestID: "",
+		RequestID: 42,
 		Method:    method,
 		Params:    params,
 	})
@@ -51,6 +51,11 @@ func (c *client) Send(method string, params Params, result interface{}) error {
 			if lastError == nil {
 
 				return nil
+			}
+
+			if _, ok := lastError.(*LogicError); ok {
+
+				return lastError
 			}
 
 		} else {
@@ -88,6 +93,11 @@ func (c *client) send(url string, data []byte, result interface{}) error {
 	if r.Error == nil {
 
 		return nil
+	}
+
+	if r.Error.Code == LogicErr {
+
+		return &LogicError{message: r.Error.Message}
 	}
 
 	return fmt.Errorf("%d:%s", r.Error.Code, r.Error.Message)
