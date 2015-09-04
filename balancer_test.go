@@ -46,6 +46,19 @@ func TestBalancerNext(t *testing.T) {
 	}
 }
 
+func BenchmarkBalancerNext(b *testing.B) {
+
+	balancer := newBalancer(&testDiscovery{addresses: []string{"a", "b", "c"}})
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+
+		balancer.next()
+	}
+}
+
 func TestBalancerErrorNoLiveUpstreams(t *testing.T) {
 
 	b := newBalancer(&testDiscovery{})
