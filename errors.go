@@ -27,3 +27,10 @@ func (l *LogicError) Error() string {
 
 	return l.message
 }
+
+type ErrorNoLiveUpstreams struct{}
+
+func (e *ErrorNoLiveUpstreams) Error() string {
+
+	return "no live upstreams"
+}

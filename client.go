@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"time"
 )
 
-type Discovery interface {
-	Get() ([]string, error)
+func init() {
+
+	rand.Seed(time.Now().UnixNano())
 }
 
 type Client interface {
@@ -19,15 +21,15 @@ type Client interface {
 func NewClient(discovery Discovery) Client {
 
 	return &client{
-		balancer: balancer{discovery: discovery},
+		balancer: newBalancer(discovery),
 		httpClient: &http.Client{
-			Timeout: time.Second * 2,
+			Timeout: time.Second,
 		},
 	}
 }
 
 type client struct {
-	balancer   balancer
+	balancer   *balancer
 	httpClient *http.Client
 }
 
@@ -35,32 +37,37 @@ func (c *client) Send(method string, params Params, result interface{}) error {
 
 	data, _ := json.Marshal(Request{
 		Jsonrpc:   "2.0",
-		RequestID: 42,
+		RequestID: rand.Int(),
 		Method:    method,
 		Params:    params,
 	})
 
 	var lastError error
 
-	for {
+	if c.balancer.len() == 0 {
 
-		if url, err := c.balancer.Next(); err == nil {
+		return &ErrorNoLiveUpstreams{}
+	}
 
-			lastError = c.send(url, data, result)
+	for i := 0; i < c.balancer.len(); i++ {
 
-			if lastError == nil {
+		url, err := c.balancer.next()
 
-				return nil
-			}
-
-			if _, ok := lastError.(*LogicError); ok {
-
-				return lastError
-			}
-
-		} else {
+		if err != nil {
 
 			return err
+		}
+
+		lastError = c.send(url, data, result)
+
+		if lastError == nil {
+
+			return nil
+		}
+
+		if _, ok := lastError.(*LogicError); ok {
+
+			return lastError
 		}
 	}
 
