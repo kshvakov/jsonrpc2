@@ -100,5 +100,10 @@ func (c *client) send(url string, data []byte, result interface{}) error {
 		return &LogicError{message: r.Error.Message}
 	}
 
-	return fmt.Errorf("%d:%s", r.Error.Code, r.Error.Message)
+	return errorFmt(r.Error.Code, r.Error.Message)
+}
+
+func errorFmt(code int16, message string) error {
+
+	return fmt.Errorf("%d:%s", code, message)
 }
