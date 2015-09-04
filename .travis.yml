@@ -1,0 +1,10 @@
+language: go
+go: 
+ - 1.4
+ - tip
+install:
+ - go get github.com/stretchr/testify/assert
+script:
+ - go test -v .
+ - go test -v ./server
+ - go test -v ./end2end_test
