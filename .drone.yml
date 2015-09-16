@@ -1,0 +1,10 @@
+image: golang:1.4.2
+env:
+  - GOPATH=/drone
+script:
+  - go get github.com/stretchr/testify/assert
+  - go build
+  - go test -v ./server
+  - go test -v ./end2end_test
+
+
